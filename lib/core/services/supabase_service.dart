@@ -67,8 +67,6 @@ class SupabaseService {
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedChapters!;
       }
-
-      print('Fetching chapters without progress for unauthorized user');
       
       // Fetch chapters directly from the chapters table
       // Use "order" in quotes since it's a reserved keyword
@@ -76,8 +74,6 @@ class SupabaseService {
           .from('chapters')
           .select('*')
           .order('"order"', ascending: true);
-
-      print('Chapters response: $response');
 
       final chapters = response.map((json) {
         // Add default values for user-specific fields
@@ -96,12 +92,10 @@ class SupabaseService {
         return Chapter.fromJson(chapterData);
       }).toList();
       
-      print('Parsed ${chapters.length} chapters');
       _cachedChapters = chapters;
       _cacheTimestamp = DateTime.now();
       return _cachedChapters!;
     } catch (e) {
-      print('Error fetching chapters without progress: $e');
       throw Exception('Failed to fetch chapters: ${e.toString()}');
     }
   }
@@ -263,7 +257,7 @@ class SupabaseService {
         'user_id': userId,
         'chapter_id': chapterId,
         'video_watch_progress': progress,
-        'video_watched': ?watched,
+        'video_watched': watched,
         'last_watched_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       });

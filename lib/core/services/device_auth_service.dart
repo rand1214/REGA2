@@ -82,23 +82,19 @@ class DeviceAuthService {
         final androidInfo = await _deviceInfo.androidInfo;
         fingerprint = '${androidInfo.model}_${androidInfo.version.release}_'
             '${androidInfo.manufacturer}_${androidInfo.id}';
-        print('Android fingerprint generated: $fingerprint');
       } catch (e) {
         // If Android fails, try iOS
         try {
           final iosInfo = await _deviceInfo.iosInfo;
           fingerprint = '${iosInfo.model}_${iosInfo.systemVersion}_'
               '${iosInfo.name}_${iosInfo.identifierForVendor}';
-          print('iOS fingerprint generated: $fingerprint');
         } catch (e) {
           // If both fail, try web
           try {
             final webInfo = await _deviceInfo.webBrowserInfo;
             fingerprint = '${webInfo.browserName}_${webInfo.platform}_'
                 '${webInfo.userAgent}';
-            print('Web fingerprint generated: $fingerprint');
           } catch (e) {
-            print('All platform checks failed: $e');
             rethrow;
           }
         }
@@ -108,11 +104,9 @@ class DeviceAuthService {
       final bytes = utf8.encode(fingerprint);
       final digest = sha256.convert(bytes);
       final hashedFingerprint = digest.toString();
-      print('Hashed fingerprint: $hashedFingerprint');
       return hashedFingerprint;
     } catch (e) {
       // Fallback to random ID if device info fails
-      print('Device fingerprint error, using fallback: $e');
       return DateTime.now().millisecondsSinceEpoch.toString();
     }
   }
@@ -241,21 +235,10 @@ class DeviceAuthService {
       );
 
       if (response == null) {
-        print('Recovery failed: No user found with this code');
         return false;
       }
 
       final userId = response as String;
-      print('Found user to recover: $userId');
-
-      // Get user name for verification
-      final profile = await _supabase
-          .from('user_profiles')
-          .select('kurdish_name')
-          .eq('id', userId)
-          .single();
-
-      print('Recovering account for: ${profile['kurdish_name']}');
 
       // Get device info for this device
       final deviceFingerprint = await getDeviceFingerprint();
@@ -272,21 +255,15 @@ class DeviceAuthService {
       );
 
       if (updateResult != true) {
-        print('Failed to update user profile during recovery');
         return false;
       }
-
-      print('Profile updated successfully with new device info');
 
       // Store the recovered user ID locally
       await _secureStorage.write(key: _userTokenKey, value: userId);
       await _secureStorage.write(key: _recoveryCodeKey, value: cleanCode);
 
-      print('Recovery successful! User ID stored: $userId');
-
       return true;
     } catch (e) {
-      print('Recovery error: $e');
       throw Exception('Failed to restore account: ${e.toString()}');
     }
   }
@@ -307,7 +284,6 @@ class DeviceAuthService {
       }).eq('id', userId);
     } catch (e) {
       // Silently fail - not critical
-      print('Failed to update last login: $e');
     }
   }
 
@@ -326,11 +302,18 @@ class DeviceAuthService {
     final userId = await getCurrentUserId();
     if (userId == null) throw Exception('User not authenticated');
 
-    await _supabase.from('user_profiles').update({
-      'kurdish_name': ?kurdishName,
-      'avatar_url': ?avatarUrl,
+    final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', userId);
+    };
+    
+    if (kurdishName != null) {
+      updates['kurdish_name'] = kurdishName;
+    }
+    if (avatarUrl != null) {
+      updates['avatar_url'] = avatarUrl;
+    }
+
+    await _supabase.from('user_profiles').update(updates).eq('id', userId);
   }
 
   /// Submit recovery request for manual approval
@@ -377,12 +360,10 @@ class DeviceAuthService {
       if (result['success'] == true) {
         await _secureStorage.write(key: _pendingRecoveryRequestKey, value: 'true');
         await _secureStorage.write(key: _pendingRecoveryCodeKey, value: cleanCode);
-        print('Stored pending recovery request: code=$cleanCode');
       }
 
       return result;
     } catch (e) {
-      print('Submit recovery request error: $e');
       return {
         'success': false,
         'error': 'exception',
@@ -415,7 +396,6 @@ class DeviceAuthService {
 
       return response as Map<String, dynamic>;
     } catch (e) {
-      print('Check recovery status error: $e');
       return {
         'success': false,
         'error': 'exception',
@@ -434,10 +414,7 @@ class DeviceAuthService {
       // Clear pending recovery request flags
       await _secureStorage.delete(key: _pendingRecoveryRequestKey);
       await _secureStorage.delete(key: _pendingRecoveryCodeKey);
-      
-      print('Recovery approved! User ID stored: $userId');
     } catch (e) {
-      print('Handle approved recovery error: $e');
       throw Exception('Failed to complete recovery: ${e.toString()}');
     }
   }
@@ -445,7 +422,6 @@ class DeviceAuthService {
   /// Check if there's a pending recovery request
   Future<bool> hasPendingRecoveryRequest() async {
     final pending = await _secureStorage.read(key: _pendingRecoveryRequestKey);
-    print('Checking pending recovery: $pending');
     return pending == 'true';
   }
 
@@ -500,7 +476,6 @@ class DeviceAuthService {
       
       return null;
     } catch (e) {
-      print('Error getting user ID by recovery code: $e');
       return null;
     }
   }
