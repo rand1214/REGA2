@@ -160,9 +160,9 @@ class _ProfileSetupBottomSheetState extends State<ProfileSetupBottomSheet> with 
         isDismissible: false,
         enableDrag: false,
         backgroundColor: Colors.transparent,
-        sheetAnimationStyle: const AnimationStyle(
-          duration: Duration(milliseconds: 650),
-          reverseDuration: Duration(milliseconds: 450),
+        sheetAnimationStyle: AnimationStyle(
+          duration: const Duration(milliseconds: 650),
+          reverseDuration: const Duration(milliseconds: 450),
           curve: Curves.easeOutCubic,
           reverseCurve: Curves.easeInCubic,
         ),
@@ -191,9 +191,9 @@ class _ProfileSetupBottomSheetState extends State<ProfileSetupBottomSheet> with 
         isDismissible: false,
         enableDrag: false,
         backgroundColor: Colors.transparent,
-        sheetAnimationStyle: const AnimationStyle(
-          duration: Duration(milliseconds: 650),
-          reverseDuration: Duration(milliseconds: 450),
+        sheetAnimationStyle: AnimationStyle(
+          duration: const Duration(milliseconds: 650),
+          reverseDuration: const Duration(milliseconds: 450),
           curve: Curves.easeOutCubic,
           reverseCurve: Curves.easeInCubic,
         ),
