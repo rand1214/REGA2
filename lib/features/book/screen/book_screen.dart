@@ -240,7 +240,7 @@ class _BookScreenState extends State<BookScreen> with AutomaticKeepAliveClientMi
             xPercent: 0.5,
             yPercent: 0.3,
             text: text,
-            colorValue: color.toARGB32(),
+            colorValue: color.value,
             createdAt: DateTime.now(),
           );
           await _localStorage.saveNote(note);
