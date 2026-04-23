@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:dotlottie_flutter/dotlottie_flutter.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/services/device_auth_service.dart';
 import 'recovery_approved_bottom_sheet.dart';
 import 'recovery_rejected_bottom_sheet.dart';
@@ -127,11 +127,9 @@ class _RecoveryRequestStatusBottomSheetState
                     SizedBox(
                       width: 100 * scale,
                       height: 100 * scale,
-                      child: DotLottieView(
-                        sourceType: 'asset',
-                        source: 'assets/icons/Sandy Loading.lottie',
-                        autoplay: true,
-                        loop: true,
+                      child: Lottie.asset(
+                        'assets/icons/Sandy Loading.lottie',
+                        fit: BoxFit.contain,
                       ),
                     ),
                     Text(
