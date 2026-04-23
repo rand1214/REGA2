@@ -33,12 +33,17 @@ Future<void> main() async {
     // .env file not found - expected in CI/CD builds
   }
 
+  // Initialize Supabase if credentials are available
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
-    );
-    await FcmService.initialize();
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
+      );
+      await FcmService.initialize();
+    } catch (e) {
+      // Supabase initialization failed - app will still run
+    }
   }
 
   runApp(const MyApp());
