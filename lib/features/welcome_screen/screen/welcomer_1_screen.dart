@@ -16,67 +16,53 @@ class Welcomer1Screen extends StatelessWidget {
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
     final scale = (screenWidth / 375).clamp(0.8, 1.5);
-    
-    // Adjust for small screens
-    final isSmallScreen = screenHeight < 700;
-    final adjustedScale = isSmallScreen ? scale * 0.9 : scale;
-    
-    // Better handling for medium screens (iPhone 14 Pro, etc.)
-    final isMediumScreen = screenWidth >= 390 && screenWidth <= 430;
-    
-    // Detect tall narrow screens (Z Fold)
-    final aspectRatio = screenHeight / screenWidth;
-    final isTallNarrow = aspectRatio > 2.0;
-    
-    // Adjust font size more aggressively for medium screens
-    final descriptionFontSize = isMediumScreen
-        ? 16.0 * adjustedScale
-        : (screenWidth < 375
-            ? 16.0 * adjustedScale
-            : (screenWidth < 400 ? 18.0 * adjustedScale : 20.0 * adjustedScale));
-    
-    // Make Kurdish title responsive
-    final titleFontSize = isMediumScreen
-        ? 24.0 * adjustedScale
-        : (isSmallScreen ? 24.0 * adjustedScale : 28.0 * adjustedScale);
-    
-    // Better vertical spacing for tall narrow screens
-    final topSpacing = isTallNarrow ? screenHeight * 0.08 : 10 * adjustedScale;
-    final imageHeight = isTallNarrow 
-        ? 280 * adjustedScale 
-        : (isSmallScreen ? 280 * adjustedScale : 350 * adjustedScale);
+
+    final imageHeight = screenHeight * 0.28;
+    final titleFontSize = (screenWidth * 0.065).clamp(20.0, 30.0);
+    final descriptionFontSize = (screenWidth * 0.038).clamp(13.0, 18.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F1F1),
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: topSpacing),
-            Text(
-              'Rêga',
-              style: TextStyle(
-                fontFamily: 'Prototype',
-                fontSize: 40 * adjustedScale,
-                fontWeight: FontWeight.normal,
-                color: Colors.black87,
-                letterSpacing: 4 * adjustedScale,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    offset: Offset(2 * adjustedScale, 2 * adjustedScale),
-                    blurRadius: 4 * adjustedScale,
-                  ),
-                ],
+            Spacer(flex: 2),
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFF0080C8), Color(0xFF004A73)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ).createShader(bounds),
+              child: Text(
+                'Rêga',
+                style: TextStyle(
+                  fontFamily: 'Prototype',
+                  fontSize: 40 * scale,
+                  fontWeight: FontWeight.normal,
+                  color: Colors.white,
+                  letterSpacing: 4 * scale,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      offset: Offset(2 * scale, 2 * scale),
+                      blurRadius: 4 * scale,
+                    ),
+                  ],
+                ),
               ),
             ),
-            Image.asset(
-              "assets/images/welcomer-1.png",
+            Spacer(flex: 2),
+            SizedBox(
+              width: double.infinity,
               height: imageHeight,
-              fit: BoxFit.contain,
+              child: Image.asset(
+                "assets/images/welcomer-1.png",
+                fit: BoxFit.contain,
+              ),
             ),
-            SizedBox(height: 10 * adjustedScale),
+            Spacer(flex: 2),
             Padding(
-              padding: EdgeInsets.only(right: 22 * adjustedScale),
+              padding: EdgeInsets.only(right: 22 * scale),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
@@ -93,100 +79,97 @@ class Welcomer1Screen extends StatelessWidget {
                     shadows: [
                       Shadow(
                         color: Colors.black.withValues(alpha: 0.15),
-                        offset: Offset(2 * adjustedScale, 2 * adjustedScale),
-                        blurRadius: 4 * adjustedScale,
+                        offset: Offset(2 * scale, 2 * scale),
+                        blurRadius: 4 * scale,
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 12 * adjustedScale),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: 20 * adjustedScale,
-                    right: 40 * adjustedScale,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(20 * adjustedScale),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16 * adjustedScale),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                offset: Offset(0, 2 * adjustedScale),
-                                blurRadius: 8 * adjustedScale,
-                                spreadRadius: 0,
-                              ),
-                            ],
+            Spacer(flex: 2),
+            Padding(
+              padding: EdgeInsets.only(
+                left: 20 * scale,
+                right: 40 * scale,
+              ),
+              child: IntrinsicHeight(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(16 * scale),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16 * scale),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            offset: Offset(0, 2 * scale),
+                            blurRadius: 8 * scale,
                           ),
-                          child: Text(
-                            "دەتوانیت یاسا و نیشانەکانی هاتووچۆ بە شێوەیەکی ڕوون و ئاسان فێربیت. زانیارییە پێویستەکان بە شێوەیەکی ڕێکوپێک ئامادەکراون بۆ ئەوەی خۆت بە باشی ئامادە بکەیت بۆ تاقیکردنەوەی مۆڵەتی شۆفێری",
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontFamily: 'Peshang',
-                              fontSize: descriptionFontSize,
-                              fontWeight: FontWeight.normal,
-                              height: 1.6,
-                              color: Colors.black.withValues(alpha: 0.7),
-                            ),
-                          ),
+                        ],
+                      ),
+                      child: Text(
+                        "دەتوانیت یاسا و نیشانەکانی هاتووچۆ بە شێوەیەکی ڕوون و ئاسان فێربیت. زانیارییە پێویستەکان بە شێوەیەکی ڕێکوپێک ئامادەکراون بۆ ئەوەی خۆت بە باشی ئامادە بکەیت بۆ تاقیکردنەوەی مۆڵەتی شۆفێری",
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontFamily: 'Peshang',
+                          fontSize: descriptionFontSize,
+                          fontWeight: FontWeight.normal,
+                          height: 1.6,
+                          color: Colors.black.withValues(alpha: 0.7),
                         ),
-                        Positioned(
-                          right: -20 * adjustedScale,
-                          top: 0,
-                          bottom: 0,
-                          child: Container(
-                            width: 6 * adjustedScale,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade700,
-                              borderRadius: BorderRadius.circular(3 * adjustedScale),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      right: -20 * scale,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 6 * scale,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade700,
+                          borderRadius: BorderRadius.circular(3 * scale),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 20 * adjustedScale),
+            Spacer(flex: 3),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30 * adjustedScale),
+              padding: EdgeInsets.symmetric(horizontal: 30 * scale),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      _buildDot(Colors.red, currentPage == 0, adjustedScale),
-                      _buildDot(Colors.orange, currentPage == 1, adjustedScale),
-                      _buildDot(Colors.green, currentPage == 2, adjustedScale),
+                      _buildDot(Colors.red, currentPage == 0, scale),
+                      _buildDot(Colors.orange, currentPage == 1, scale),
+                      _buildDot(Colors.green, currentPage == 2, scale),
                     ],
                   ),
                   GestureDetector(
                     onTap: onNextPressed,
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 24 * adjustedScale,
-                        vertical: 12 * adjustedScale,
+                        horizontal: 24 * scale,
+                        vertical: 10 * scale,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(20 * adjustedScale),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0080C8), Color(0xFF004A73)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(18 * scale),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.3),
-                            offset: Offset(0, 4 * adjustedScale),
-                            blurRadius: 8 * adjustedScale,
-                            spreadRadius: 0,
+                            offset: Offset(0, 4 * scale),
+                            blurRadius: 8 * scale,
                           ),
                         ],
                       ),
@@ -194,7 +177,7 @@ class Welcomer1Screen extends StatelessWidget {
                         'دواتر',
                         style: TextStyle(
                           fontFamily: 'Peshang',
-                          fontSize: 18 * adjustedScale,
+                          fontSize: 18 * scale,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -204,7 +187,7 @@ class Welcomer1Screen extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 40 * adjustedScale),
+            Spacer(flex: 2),
           ],
         ),
       ),

@@ -1,9 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/home/models/chapter_model.dart';
+import '../../features/home/models/sponser_model.dart';
 import 'device_auth_service.dart';
 
 class SupabaseService {
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  /// Expose the Supabase client for direct queries
+  SupabaseClient get supabase => _supabase;
   final DeviceAuthService _authService = DeviceAuthService();
 
   // Cache for user data
@@ -11,22 +15,25 @@ class SupabaseService {
   static bool? _cachedHasSubscription;
   static int? _cachedNotificationCount;
   static List<Chapter>? _cachedChapters;
+  static List<SponserModel>? _cachedSponsors;
   static DateTime? _cacheTimestamp;
   static const _cacheDuration = Duration(minutes: 5);
 
   // Get current user ID from device auth service
-  Future<String?> get currentUserId async => await _authService.getCurrentUserId();
+  Future<String?> get currentUserId async =>
+      await _authService.getCurrentUserId();
 
   // Check if user is authenticated
-  Future<bool> get isAuthenticated async => await _authService.isAuthenticated();
+  Future<bool> get isAuthenticated async =>
+      await _authService.isAuthenticated();
 
   /// Fetch chapters with user's progress and lock status
   /// Uses the get_chapters_with_progress() database function
   Future<List<Chapter>> getChaptersWithProgress() async {
     try {
       // Check cache first
-      if (_cachedChapters != null && 
-          _cacheTimestamp != null && 
+      if (_cachedChapters != null &&
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedChapters!;
       }
@@ -62,12 +69,12 @@ class SupabaseService {
   Future<List<Chapter>> getChaptersWithoutProgress() async {
     try {
       // Check cache first
-      if (_cachedChapters != null && 
-          _cacheTimestamp != null && 
+      if (_cachedChapters != null &&
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedChapters!;
       }
-      
+
       // Fetch chapters directly from the chapters table
       // Use "order" in quotes since it's a reserved keyword
       final response = await _supabase
@@ -78,12 +85,13 @@ class SupabaseService {
       final chapters = response.map((json) {
         // Add default values for user-specific fields
         final chapterData = Map<String, dynamic>.from(json);
-        
+
         // Calculate is_locked for unauthorized users:
         // If chapter requires subscription, it's locked (unauthorized users have no subscription)
-        final requiresSubscription = chapterData['requires_subscription'] as bool? ?? false;
+        final requiresSubscription =
+            chapterData['requires_subscription'] as bool? ?? false;
         chapterData['is_locked'] = requiresSubscription;
-        
+
         chapterData['progress_percentage'] = 0;
         chapterData['completed_lessons'] = 0;
         chapterData['total_lessons'] = 0;
@@ -91,7 +99,7 @@ class SupabaseService {
         chapterData['video_watch_progress'] = 0;
         return Chapter.fromJson(chapterData);
       }).toList();
-      
+
       _cachedChapters = chapters;
       _cacheTimestamp = DateTime.now();
       return _cachedChapters!;
@@ -105,8 +113,8 @@ class SupabaseService {
   Future<bool> hasActiveSubscription() async {
     try {
       // Check cache first
-      if (_cachedHasSubscription != null && 
-          _cacheTimestamp != null && 
+      if (_cachedHasSubscription != null &&
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedHasSubscription!;
       }
@@ -135,8 +143,8 @@ class SupabaseService {
   Future<int> getUnreadNotificationCount() async {
     try {
       // Check cache first
-      if (_cachedNotificationCount != null && 
-          _cacheTimestamp != null && 
+      if (_cachedNotificationCount != null &&
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedNotificationCount!;
       }
@@ -183,18 +191,47 @@ class SupabaseService {
   Future<String> getUserKurdishName() async {
     try {
       // Check cache first
-      if (_cachedUserName != null && 
-          _cacheTimestamp != null && 
+      if (_cachedUserName != null &&
+          _cacheTimestamp != null &&
           DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
         return _cachedUserName!;
       }
 
       final profile = await getUserProfile();
-      _cachedUserName = profile?['kurdish_name'] as String? ?? 'بەکارهێنەر';
+      _cachedUserName = profile?['kurdish_name'] as String?;
+      if (_cachedUserName == null || _cachedUserName!.isEmpty) {
+        _cachedUserName = 'بەخێربێیت';
+      }
       _cacheTimestamp = DateTime.now();
       return _cachedUserName!;
     } catch (e) {
-      return 'بەکارهێنەر'; // Default: "User"
+      return 'بەخێربێیت';
+    }
+  }
+
+  /// Get active sponsors ordered by display order
+  Future<List<SponserModel>> getActiveSponsors() async {
+    try {
+      if (_cachedSponsors != null &&
+          _cacheTimestamp != null &&
+          DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
+        return _cachedSponsors!;
+      }
+
+      final now = DateTime.now().toUtc().toIso8601String();
+      final response = await _supabase
+          .from('sponsers')
+          .select()
+          .lte('valid_from', now)
+          .gte('valid_until', now)
+          .order('order', ascending: true);
+
+      _cachedSponsors = (response as List)
+          .map((json) => SponserModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+      return _cachedSponsors!;
+    } catch (e) {
+      return [];
     }
   }
 
@@ -204,12 +241,13 @@ class SupabaseService {
     _cachedHasSubscription = null;
     _cachedNotificationCount = null;
     _cachedChapters = null;
+    _cachedSponsors = null;
     _cacheTimestamp = null;
   }
 
   /// Get cached user name synchronously (no async)
   static String? getCachedUserName() {
-    if (_cacheTimestamp != null && 
+    if (_cacheTimestamp != null &&
         DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
       return _cachedUserName;
     }
@@ -218,7 +256,7 @@ class SupabaseService {
 
   /// Get cached subscription status synchronously (no async)
   static bool? getCachedSubscription() {
-    if (_cacheTimestamp != null && 
+    if (_cacheTimestamp != null &&
         DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
       return _cachedHasSubscription;
     }
@@ -227,7 +265,7 @@ class SupabaseService {
 
   /// Get cached notification count synchronously (no async)
   static int? getCachedNotificationCount() {
-    if (_cacheTimestamp != null && 
+    if (_cacheTimestamp != null &&
         DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
       return _cachedNotificationCount;
     }
@@ -236,124 +274,10 @@ class SupabaseService {
 
   /// Get cached chapters synchronously (no async)
   static List<Chapter>? getCachedChapters() {
-    if (_cacheTimestamp != null && 
+    if (_cacheTimestamp != null &&
         DateTime.now().difference(_cacheTimestamp!) < _cacheDuration) {
       return _cachedChapters;
     }
     return null;
-  }
-
-  /// Update video watch progress
-  Future<void> updateVideoProgress({
-    required int chapterId,
-    required int progress,
-    bool? watched,
-  }) async {
-    try {
-      final userId = await currentUserId;
-      if (userId == null) return;
-
-      await _supabase.from('user_chapter_progress').upsert({
-        'user_id': userId,
-        'chapter_id': chapterId,
-        'video_watch_progress': progress,
-        'video_watched': watched,
-        'last_watched_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      throw Exception('Failed to update video progress: ${e.toString()}');
-    }
-  }
-
-  /// Mark notification as read
-  Future<void> markNotificationAsRead(String notificationId) async {
-    try {
-      final userId = await currentUserId;
-      if (userId == null) return;
-
-      await _supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId)
-          .eq('user_id', userId);
-    } catch (e) {
-      throw Exception('Failed to mark notification as read: ${e.toString()}');
-    }
-  }
-
-  /// Get all notifications for user
-  Future<List<Map<String, dynamic>>> getNotifications({
-    bool? isRead,
-    int limit = 50,
-  }) async {
-    try {
-      final userId = await currentUserId;
-      if (userId == null) {
-        return [];
-      }
-
-      var query = _supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', userId);
-
-      if (isRead != null) {
-        query = query.eq('is_read', isRead);
-      }
-
-      final response = await query
-          .order('created_at', ascending: false)
-          .limit(limit);
-
-      return (response as List)
-          .map((item) => item as Map<String, dynamic>)
-          .toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  /// Subscribe to chapter changes (real-time)
-  RealtimeChannel subscribeToChapters(Function(List<Chapter>) onUpdate) {
-    return _supabase
-        .channel('chapters_changes')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'chapters',
-          callback: (payload) async {
-            // Refetch chapters when any change occurs
-            final chapters = await getChaptersWithProgress();
-            onUpdate(chapters);
-          },
-        )
-        .subscribe();
-  }
-
-  /// Subscribe to notifications (real-time)
-  Future<RealtimeChannel> subscribeToNotifications(
-      Function(Map<String, dynamic>) onNewNotification) async {
-    final userId = await currentUserId;
-    if (userId == null) {
-      throw Exception('User not authenticated');
-    }
-
-    return _supabase
-        .channel('user_notifications')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'notifications',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            onNewNotification(payload.newRecord);
-          },
-        )
-        .subscribe();
   }
 }

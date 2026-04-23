@@ -1,37 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'features/splash/screen/splash_screen.dart';
 import 'features/welcome_screen/screen/welcome_screen_wrapper.dart';
 import 'features/home/screen/home_screen.dart';
+import 'core/services/fcm_service.dart';
+
+// Handle background messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  String supabaseUrl = '';
+  String supabaseAnonKey = '';
+
   // Load environment variables (optional for builds without .env)
   try {
     await dotenv.load(fileName: ".env");
+    supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
   } catch (e) {
-    // .env file not found - this is expected in CI/CD builds
-    // Environment variables should be provided through other means
+    // .env file not found - expected in CI/CD builds
   }
-
-  // Get Supabase credentials from environment or use empty strings as fallback
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
     );
+    await FcmService.initialize();
   }
 
   runApp(const MyApp());
 }
-
-final supabase = Supabase.instance.client;
 
 // Custom page transition builder for smooth fade
 CustomTransitionPage<void> buildPageWithFadeTransition({
@@ -74,10 +85,13 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      pageBuilder: (context, state) => buildPageWithFadeTransition(
-        context: context,
-        state: state,
-        child: const HomeScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: HomeScreen(key: ValueKey(state.extra)),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child; // No transition — sheet slides down, then home appears instantly
+        },
+        transitionDuration: Duration.zero,
       ),
     ),
   ],

@@ -112,7 +112,6 @@ class _SplashScreenState extends State<SplashScreen>
           ]);
         } catch (e) {
           // Ignore errors - data will be fetched again on home screen if needed
-          print('Preload error: $e');
         }
       }
       

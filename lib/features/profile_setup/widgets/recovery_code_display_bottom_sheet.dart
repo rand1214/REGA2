@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import '../../../core/services/device_auth_service.dart';
+import '../../../core/services/home_refresh_service.dart';
 
 class RecoveryCodeDisplayBottomSheet extends StatefulWidget {
   final String recoveryCode;
@@ -22,6 +23,7 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
   late Animation<double> _scaleAnimation;
   late AnimationController _infoAnimationController;
   late AnimationController _dropdownAnimationController;
+  late AnimationController _lottieController;
   bool _showInfoDropdown = false;
   String? _expandedSection;
 
@@ -40,6 +42,7 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _lottieController = AnimationController(vsync: this);
   }
 
   @override
@@ -47,6 +50,7 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
     _animationController.dispose();
     _infoAnimationController.dispose();
     _dropdownAnimationController.dispose();
+    _lottieController.dispose();
     super.dispose();
   }
 
@@ -144,156 +148,164 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
           Expanded(
             child: Stack(
               children: [
-                SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 16 * scale),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                  Column(
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Transform.translate(
-                        offset: Offset(0, -20 * scale),
+                      // ── Animation + title ──────────────────────────
+                      Spacer(),
+                      Center(
                         child: SizedBox(
-                          width: 140 * scale,
-                          height: 100 * scale,
-                          child: OverflowBox(
-                            maxWidth: 150 * scale,
-                            maxHeight: 150 * scale,
-                            child: Lottie.asset(
-                              'assets/icons/Accepted.json',
-                              fit: BoxFit.contain,
-                              repeat: false,
-                              frameRate: FrameRate.max,
-                            ),
+                          width: 105 * scale,
+                          height: 105 * scale,
+                          child: Lottie.asset(
+                            'assets/icons/Approved.json',
+                            controller: _lottieController,
+                            fit: BoxFit.contain,
+                            repeat: false,
+                            frameRate: const FrameRate(60),
+                            onLoaded: (composition) {
+                              _lottieController.duration = composition.duration * 2;
+                              _lottieController.forward();
+                            },
                           ),
                         ),
                       ),
-                      Transform.translate(
-                        offset: Offset(0, -40 * scale),
-                        child: Text(
-                          '! هەژمارەکەت درووست کرا',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'Peshang',
-                            fontSize: 20 * scale,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  Transform.translate(
-                    offset: Offset(0, -30 * scale),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10 * scale),
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              ScaleTransition(
-                                scale: _scaleAnimation,
-                                child: IconButton(
-                                  onPressed: () => _copyToClipboard(context),
-                                  icon: Icon(
-                                    Icons.copy,
-                                    size: 14 * scale,
-                                    color: _isCopied ? Colors.green : null,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: BoxConstraints(),
-                                  style: IconButton.styleFrom(
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
-                              ),
-                              Flexible(
-                                child: Text(
-                                  'کۆدی گەڕاندنەوەی هەژمار',
-                                  style: TextStyle(
-                                    fontFamily: 'Peshang',
-                                    fontSize: 9 * scale,
-                                    color: Colors.black54,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              formattedCode,
-                              style: TextStyle(
-                                fontFamily: 'Prototype',
-                                fontSize: 22 * scale,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  Transform.translate(
-                    offset: Offset(0, -20 * scale),
-                    child: Text(
-                      'ئەم کۆدە بە تەنها ڕێگەیە بۆ گەڕاندنەوەی هەژمارەکەت. تکایە لە شوێنێکی پارێزراو هەڵیبگرە',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Peshang',
-                        fontSize: 11 * scale,
-                        color: Colors.black54,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  
-                  Transform.translate(
-                    offset: Offset(0, 0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.go('/home');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(vertical: 14 * scale),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12 * scale),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'تێگەشتم',
+                      SizedBox(height: 8 * scale),
+                      Text(
+                        '! هەژمارەکەت درووست کرا',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Peshang',
-                          fontSize: 16 * scale,
+                          fontSize: 15 * scale,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       ),
-                    ),
+
+                      // ── Code card ──────────────────────────────────
+                      Spacer(),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 4 * scale),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10 * scale),
+                          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                ScaleTransition(
+                                  scale: _scaleAnimation,
+                                  child: IconButton(
+                                    onPressed: () => _copyToClipboard(context),
+                                    icon: Icon(
+                                      Icons.copy,
+                                      size: 14 * scale,
+                                      color: _isCopied ? Colors.green : null,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: BoxConstraints(),
+                                    style: IconButton.styleFrom(
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    'کۆدی گەڕاندنەوەی هەژمار',
+                                    style: TextStyle(
+                                      fontFamily: 'Peshang',
+                                      fontSize: 9 * scale,
+                                      color: Colors.black54,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                formattedCode,
+                                style: TextStyle(
+                                  fontFamily: 'Prototype',
+                                  fontSize: 16 * scale,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── Warning text ───────────────────────────────
+                      Spacer(),
+                      Text(
+                        'ئەم کۆدە تەنها ڕێگەیە بۆ گەڕاندنەوەی هەژمارەکەت. تکایە لە شوێنێکی پارێزراو هەڵیبگرە',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Peshang',
+                          fontSize: 9 * scale,
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
+                      ),
+
+                      // ── Button ─────────────────────────────────────
+                      Spacer(),
+                      Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(10 * scale),
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: 0.4),
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            context.go('/home');
+                            Future.delayed(const Duration(milliseconds: 500), () {
+                              triggerHomeRefresh();
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(10 * scale),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0080C8), Color(0xFF004A73)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              borderRadius: BorderRadius.circular(10 * scale),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Container(
+                              height: 40 * scale,
+                              alignment: Alignment.center,
+                              child: Text(
+                                'تێگەشتم',
+                                style: TextStyle(
+                                  fontFamily: 'Peshang',
+                                  fontSize: 15 * scale,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Spacer(),
+                    ],
                   ),
-                  ],
                 ),
-              ),
-            ),
             
             // Info icon and dropdown at top right
             Positioned(
@@ -305,8 +317,8 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
                   GestureDetector(
                     onTap: _playInfoAnimation,
                     child: SizedBox(
-                      width: 24 * scale,
-                      height: 24 * scale,
+                      width: 26 * scale,
+                      height: 26 * scale,
                       child: Lottie.asset(
                         'assets/icons/info-icon.json',
                         controller: _infoAnimationController,
@@ -414,6 +426,7 @@ class _RecoveryCodeDisplayBottomSheetState extends State<RecoveryCodeDisplayBott
     final isExpanded = _expandedSection == sectionId;
     
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         setState(() {
           _expandedSection = isExpanded ? null : sectionId;

@@ -49,19 +49,23 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
   }
 
   void _startTypewriterEffect(String text) async {
-    // Fade out existing text
-    if (_displayedSubtitle.isNotEmpty) {
-      await _fadeController.reverse();
-    }
-    
-    // Cancel any existing timer and reset
+    // Cancel any existing timer
     _typewriterTimer?.cancel();
-    _charIndex = 0;
-    _displayedSubtitle = '';
     
-    // Fade in and start typing
+    // Immediately reset fade and clear text
+    _fadeController.value = 0.0;
+    setState(() {
+      _displayedSubtitle = '';
+      _charIndex = 0;
+    });
+    
+    // Small delay before starting typewriter
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    // Fade in
     _fadeController.forward();
     
+    // Start typing
     _typewriterTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
       if (_charIndex < text.length) {
         setState(() {
@@ -104,7 +108,7 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
     return PopScope(
       canPop: false,
       child: GestureDetector(
-      onTap: () {
+        onTap: () {
         // Close dropdown when tapping anywhere in the sheet
         if (_showInfoDropdown) {
           _dropdownAnimationController.reverse().then((_) {
@@ -128,17 +132,6 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
         children: [
           Column(
         children: [
-          // Drag handle
-          Container(
-            margin: EdgeInsets.only(top: 8 * scale),
-            width: 40 * scale,
-            height: 4 * scale,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2 * scale),
-            ),
-          ),
-          
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 24 * scale, vertical: 12 * scale),
@@ -147,52 +140,40 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Title
-                  Column(
+                  Transform.translate(
+                    offset: Offset(0, -12 * scale),
+                    child: Column(
                     children: [
-                      Transform.translate(
-                        offset: Offset(0, -15 * scale),
-                        child: Image.asset(
-                          'assets/images/Flag-Map_Kurdistan.png',
-                          width: 120 * scale,
-                          height: 120 * scale,
-                          fit: BoxFit.contain,
-                        ),
+                      Image.asset(
+                        'assets/images/Flag-Map_Kurdistan.png',
+                        width: 105 * scale,
+                        height: 105 * scale,
+                        fit: BoxFit.contain,
                       ),
-                      Transform.translate(
-                        offset: Offset(0, -23 * scale),
-                        child: Text(
-                          'زارەوەی شیرینت هەڵبژێرە',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'Peshang',
-                            fontSize: 12 * scale,
-                            color: Colors.black54,
-                          ),
+                      Text(
+                        'زارەوەی شیرینت هەڵبژێرە',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Peshang',
+                          fontSize: 12 * scale,
+                          color: Colors.black54,
                         ),
                       ),
                     ],
                   ),
-                  
-                  SizedBox(height: 12 * scale),
-                  
-                  // Dialect options
-                  Transform.translate(
-                    offset: Offset(0, -20 * scale),
-                    child: Column(
-                      children: [
-                        _buildDialectOption('sorani', 'سۆرانی', scale, subtitle: 'بە هیوای سەرکەوتن'),
-                        SizedBox(height: 12 * scale),
-                        _buildDialectOption('badini', 'بادینی', scale, subtitle: 'بە هیوای سەرکەوتن'),
-                      ],
-                    ),
                   ),
                   
-                  SizedBox(height: 12 * scale),
+                  // Dialect options
+                  Column(
+                    children: [
+                      _buildDialectOption('sorani', 'سۆرانی', scale, subtitle: 'بە هیوای سەرکەوتن'),
+                      SizedBox(height: 10 * scale),
+                      _buildDialectOption('badini', 'بادینی', scale, subtitle: 'بە هیوای سەرکەوتن'),
+                    ],
+                  ),
                   
                   // Continue button
-                  Transform.translate(
-                    offset: Offset(0, -20 * scale),
-                    child: Material(
+                  Material(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(10 * scale),
                       elevation: 4,
@@ -208,20 +189,18 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
                           gradient: _selectedDialect != null
                               ? LinearGradient(
                                   colors: [
-                                    Color(0xFF2d2d2d),
-                                    Color(0xFF1a1a1a),
-                                    Color(0xFF0d0d0d),
+                                    Color(0xFF0080C8),
+                                    Color(0xFF004A73),
                                   ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
-                                  stops: [0.0, 0.5, 1.0],
                                 )
                               : LinearGradient(
                                   colors: [Colors.grey.shade400, Colors.grey.shade400],
                                 ),
                           borderRadius: BorderRadius.circular(10 * scale),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -240,7 +219,6 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
                         ),
                       ),
                     ),
-                  ),
                   ),
                 ],
               ),
@@ -261,8 +239,8 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
                 _playInfoAnimation();
               },
               child: SizedBox(
-                width: 24 * scale,
-                height: 24 * scale,
+                width: 26 * scale,
+                height: 26 * scale,
                 child: Lottie.asset(
                   'assets/icons/info-icon.json',
                   controller: _infoAnimationController,
@@ -462,6 +440,7 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
     final isExpanded = _expandedSection == sectionId;
     
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         setState(() {
           _expandedSection = isExpanded ? null : sectionId;
@@ -532,7 +511,7 @@ class _DialectSelectionBottomSheetState extends State<DialectSelectionBottomShee
         } else if (parts[i] == 'بادینی') {
           color = Colors.orange.shade700;
         } else if (parts[i] == 'دواتر') {
-          color = Colors.black;
+          color = Color(0xFF006BA6);
         }
         spans.add(TextSpan(
           text: parts[i],

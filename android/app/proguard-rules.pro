@@ -32,3 +32,7 @@
 ## General Android
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
+
+## Play Core (missing classes fix)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }

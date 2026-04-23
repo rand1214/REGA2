@@ -1,45 +1,41 @@
-# Flutter Supabase App
+# REGA2 - Flutter Supabase App
 
-## Security Setup
+A Flutter application integrated with Supabase backend.
 
-### Environment Variables
-1. Copy `.env.example` to `.env`
-2. Add your Supabase credentials to `.env`
-3. Never commit `.env` to version control
+## Features
 
-### Security Best Practices Implemented
-
-1. **Environment Variables**: Credentials stored in `.env` file (gitignored)
-2. **No Hardcoded Secrets**: All sensitive data loaded from environment
-3. **Row Level Security**: Enable RLS on all Supabase tables
-4. **Authentication**: Use Supabase auth for user management
-5. **HTTPS Only**: All API calls use secure connections
-
-### Additional Security Recommendations
-
-#### On Supabase Dashboard:
-- Enable Row Level Security (RLS) on all tables
-- Set up proper authentication policies
-- Use service role key only on backend/server
-- Enable email verification for sign-ups
-- Configure allowed redirect URLs
-
-#### In Your App:
-- Validate all user inputs
-- Use parameterized queries (Supabase does this by default)
-- Implement proper error handling
-- Add rate limiting for sensitive operations
-- Use secure storage for tokens (Supabase Flutter handles this)
+- Supabase authentication and database integration
+- Modern Flutter UI
+- Cross-platform support (iOS, Android)
 
 ## Setup
 
+1. Clone the repository
+2. Copy `.env.example` to `.env` and fill in your Supabase credentials
+3. Run `flutter pub get`
+4. Run `flutter run`
+
+## Building
+
+### iOS (Unsigned IPA)
+The project includes a GitHub Actions workflow that automatically builds an unsigned IPA on push to main/master branch.
+
+To download the IPA:
+1. Go to the Actions tab in GitHub
+2. Select the latest workflow run
+3. Download the `app-unsigned-ipa` artifact
+
+### Manual Build
 ```bash
-flutter pub get
-flutter run
+flutter build ios --release --no-codesign
 ```
 
-## Building for Production
+## Environment Variables
 
-See [BUILD_RELEASE.md](BUILD_RELEASE.md) for instructions on building obfuscated release versions.
+Required environment variables (see `.env.example`):
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Your Supabase anonymous key
 
-**Code obfuscation is configured and ready!** When you build for release, your code will be automatically obfuscated.
+## License
+
+All rights reserved.

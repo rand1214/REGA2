@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import '../models/chapter_model.dart';
 
 class CircleNavigator extends StatefulWidget {
   final List<Chapter> chapters;
   final Function(int, String) onChapterSelected;
+  final Function(bool)? onScrollAtEnd;
 
   const CircleNavigator({
     super.key,
     required this.chapters,
     required this.onChapterSelected,
+    this.onScrollAtEnd,
   });
 
   @override
@@ -19,43 +20,60 @@ class CircleNavigator extends StatefulWidget {
 class _CircleNavigatorState extends State<CircleNavigator> {
   int selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
+  final Map<String, Color> _colorCache = {};
 
   @override
   void initState() {
     super.initState();
-    // Scroll to show the first chapter (rightmost in RTL) after layout is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Add a small delay to ensure layout is fully complete
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && _scrollController.hasClients && widget.chapters.isNotEmpty) {
-          // In RTL with Directionality, position 0.0 is the start (right side)
-          // This shows the first chapter on the right
+        if (mounted &&
+            _scrollController.hasClients &&
+            widget.chapters.isNotEmpty) {
           _scrollController.jumpTo(0.0);
         }
       });
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final isAtEnd = _scrollController.offset >= _scrollController.position.maxScrollExtent - 1;
+    widget.onScrollAtEnd?.call(isAtEnd);
+  }
+
+  @override
+  void didUpdateWidget(CircleNavigator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Clear color cache if chapters changed
+    if (oldWidget.chapters != widget.chapters) {
+      _colorCache.clear();
+      // Validate selectedIndex against new chapters list
+      if (selectedIndex >= widget.chapters.length) {
+        selectedIndex = 0;
+      }
+    }
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _colorCache.clear();
     super.dispose();
-  }
-
-  double _getItemWidth(double scale) {
-    // Circle width (70) + padding (12) = 82
-    return (70 * scale) + (12 * scale);
   }
 
   void _scrollToIndex(int index, double scale) {
     if (!_scrollController.hasClients || widget.chapters.isEmpty) return;
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final itemWidth = _getItemWidth(scale);
+    const double itemWidth = 86.0;
+    final scaledItemWidth = itemWidth * scale;
     final horizontalPadding = 20.0 * scale;
 
-    final itemPosition = index * itemWidth;
-    final centerOffset = itemPosition - (screenWidth / 2) + (itemWidth / 2) + horizontalPadding;
+    final itemPosition = index * scaledItemWidth;
+    final centerOffset =
+        itemPosition - (screenWidth / 2) + (scaledItemWidth / 2) + horizontalPadding;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final targetOffset = centerOffset.clamp(0.0, maxScroll);
 
@@ -67,53 +85,44 @@ class _CircleNavigatorState extends State<CircleNavigator> {
   }
 
   void _onChapterTap(int index) {
-    // Don't allow selection of locked chapters
+    // Validate index is within bounds
+    if (index < 0 || index >= widget.chapters.length) return;
     if (widget.chapters[index].isLocked) return;
-
-    setState(() {
-      selectedIndex = index;
-    });
-
+    setState(() { selectedIndex = index; });
     final scale = (MediaQuery.of(context).size.width / 375).clamp(0.8, 1.5);
     _scrollToIndex(index, scale);
-
     widget.onChapterSelected(index, widget.chapters[index].largeTitle);
   }
 
   Color _parseColor(String hexColor) {
-    // Convert hex string like "#B7D63E" to Color
-    final hex = hexColor.replaceAll('#', '');
-    return Color(int.parse('FF$hex', radix: 16));
+    if (_colorCache.containsKey(hexColor)) {
+      return _colorCache[hexColor]!;
+    }
+    try {
+      final hex = hexColor.replaceAll('#', '');
+      final color = Color(int.parse('FF$hex', radix: 16));
+      _colorCache[hexColor] = color;
+      return color;
+    } catch (_) {
+      return Colors.grey;
+    }
   }
 
   Widget _buildChapterIcon(String iconPath, double scale) {
-    // Check if it's a URL or asset path
     if (iconPath.startsWith('http://') || iconPath.startsWith('https://')) {
-      // It's a URL, use Image.network
       return Image.network(
         iconPath,
-        width: 32 * scale,
-        height: 32 * scale,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback icon if network image fails
-          return Icon(
-            Icons.image_not_supported,
-            size: 32 * scale,
-            color: Colors.grey,
-          );
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
+        width: 32 * scale, height: 32 * scale, fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported, size: 32 * scale, color: Colors.grey),
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
           return SizedBox(
-            width: 32 * scale,
-            height: 32 * scale,
+            width: 32 * scale, height: 32 * scale,
             child: Center(
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
                     : null,
               ),
             ),
@@ -121,20 +130,10 @@ class _CircleNavigatorState extends State<CircleNavigator> {
         },
       );
     } else {
-      // It's an asset path, use Image.asset
       return Image.asset(
         iconPath,
-        width: 32 * scale,
-        height: 32 * scale,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback icon if asset fails
-          return Icon(
-            Icons.image_not_supported,
-            size: 32 * scale,
-            color: Colors.grey,
-          );
-        },
+        width: 32 * scale, height: 32 * scale, fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported, size: 32 * scale, color: Colors.grey),
       );
     }
   }
@@ -161,90 +160,100 @@ class _CircleNavigatorState extends State<CircleNavigator> {
       );
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 20 * scale),
-      child: Directionality(
+    return Directionality(
         textDirection: TextDirection.rtl,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 20 * scale),
-          child: Row(
+        child: ClipRect(
+          clipper: _LeftOnlyClipper(),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(left: 8 * scale),
+            clipBehavior: Clip.none,
+            child: Row(
             children: List.generate(
               widget.chapters.length,
               (index) {
                 final chapter = widget.chapters[index];
                 final isSelected = selectedIndex == index;
 
-                return Padding(
-                  padding: EdgeInsets.only(right: 12 * scale),
-                  child: SizedBox(
-                    width: 70 * scale, // Fixed width to ensure consistent spacing
+                return SizedBox(
+                    width: 86 * scale,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
                           onTap: () => _onChapterTap(index),
-                          child: Stack(
-                            children: [
-                              Container(
-                                width: 70 * scale,
-                                height: 70 * scale,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFF1F1F1),
-                                  border: Border.all(
-                                    color: isSelected ? Colors.black : Colors.grey.shade300,
-                                    width: isSelected ? 3 * scale : 2 * scale,
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(5 * scale, 0, 5 * scale, 0),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                CustomPaint(
+                                  painter: _NotchedCirclePainter(
+                                    isSelected: isSelected,
+                                    hasNotch: chapter.isLocked,
+                                    scale: scale,
+                                    bgColor: Color(int.parse('FF${chapter.color.replaceAll('#', '')}', radix: 16)).withValues(alpha: 0.15),
+                                    shadowColor: isSelected ? _parseColor(chapter.color) : Colors.black,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      offset: Offset(0, 2 * scale),
-                                      blurRadius: 6 * scale,
-                                    ),
-                                  ],
-                                ),
-                                child: ClipOval(
-                                  child: Center(
-                                    child: ColorFiltered(
-                                      colorFilter: ColorFilter.mode(
-                                        _parseColor(chapter.color),
-                                        BlendMode.srcIn,
+                                  child: SizedBox(
+                                    width: 66 * scale,
+                                    height: 66 * scale,
+                                    child: ClipOval(
+                                      child: Center(
+                                        child: ColorFiltered(
+                                          colorFilter: ColorFilter.mode(
+                                            _parseColor(chapter.color),
+                                            BlendMode.srcIn,
+                                          ),
+                                          child: _buildChapterIcon(chapter.iconPath, scale),
+                                        ),
                                       ),
-                                      child: _buildChapterIcon(chapter.iconPath, scale),
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Lock overlay
-                              if (chapter.isLocked)
-                                _LockedChapterOverlay(scale: scale),
-                            ],
+                                if (chapter.isLocked)
+                                  Positioned(
+                                    top: -8 * scale,
+                                    left: -2 * scale,
+                                    child: _LockedChapterOverlay(scale: scale, chapterColor: _parseColor(chapter.color)),
+                                  )
+                                else if (isSelected)
+                                  Positioned(
+                                    top: -8 * scale,
+                                    left: -2 * scale,
+                                    child: _LockedChapterOverlay(scale: scale, isSelected: true, chapterColor: _parseColor(chapter.color)),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                        SizedBox(height: 8 * scale),
+                        SizedBox(height: 5 * scale),
                         SizedBox(
-                          height: 40 * scale,
-                          child: Text(
-                            chapter.circleTitle,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Peshang',
-                              fontSize: 12 * scale,
-                              fontWeight: FontWeight.w600,
-                              color: chapter.isLocked 
-                                  ? Colors.grey.shade400 
-                                  : Colors.black87,
+                          height: 36 * scale,
+                          child: Align(
+                            alignment: Alignment(0, -0.7),
+                            child: Text(
+                              chapter.circleTitle,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              softWrap: true,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Peshang',
+                                fontSize: 11 * scale,
+                                fontWeight: FontWeight.w600,
+                                color: chapter.isLocked
+                                    ? Colors.grey.shade400
+                                    : Colors.black87,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
                 );
               },
             ),
@@ -255,53 +264,100 @@ class _CircleNavigatorState extends State<CircleNavigator> {
   }
 }
 
-
-// Separate widget for locked chapter overlay with Lottie animation
-class _LockedChapterOverlay extends StatefulWidget {
-  final double scale;
-
-  const _LockedChapterOverlay({required this.scale});
+class _LeftOnlyClipper extends CustomClipper<Rect> {
+  @override
+  Rect getClip(Size size) {
+    // Clip only the left edge; allow overflow on right, top, and bottom
+    return Rect.fromLTWH(0, -size.height, size.width, size.height * 3);
+  }
 
   @override
-  State<_LockedChapterOverlay> createState() => _LockedChapterOverlayState();
+  bool shouldReclip(_LeftOnlyClipper oldClipper) => false;
 }
 
-class _LockedChapterOverlayState extends State<_LockedChapterOverlay> with SingleTickerProviderStateMixin {
-  late AnimationController _lockController;
+class _LockedChapterOverlay extends StatelessWidget {
+  final double scale;
+  final bool isSelected;
+  final Color? chapterColor;
 
-  @override
-  void initState() {
-    super.initState();
-    _lockController = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _lockController.dispose();
-    super.dispose();
-  }
+  const _LockedChapterOverlay({required this.scale, this.isSelected = false, this.chapterColor});
 
   @override
   Widget build(BuildContext context) {
+    final double size = 22 * scale;
+    final double iconSize = size * 0.6;
+
+    final List<Color> gradientColors = [chapterColor ?? const Color(0xFF3D82B8), (chapterColor ?? const Color(0xFF2C6EA3)).withValues(alpha: 0.8)];
+
     return Container(
-      width: 70 * widget.scale,
-      height: 70 * widget.scale,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.black.withValues(alpha: 0.5),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
       ),
-      padding: EdgeInsets.all(15 * widget.scale),
-      child: Lottie.asset(
-        'assets/icons/Lock.json',
-        fit: BoxFit.contain,
-        controller: _lockController,
-        onLoaded: (composition) {
-          _lockController.duration = composition.duration;
-          // Set to frame 1 (value 0.0 is frame 0, so we need a tiny value for frame 1)
-          _lockController.value = 1.0 / composition.duration.inMilliseconds;
-        },
-        repeat: false,
+      child: Icon(
+        isSelected ? Icons.check : Icons.lock,
+        size: iconSize,
+        color: Colors.white,
       ),
     );
   }
+}
+
+class _NotchedCirclePainter extends CustomPainter {
+  final bool isSelected;
+  final bool hasNotch;
+  final double scale;
+  final Color bgColor;
+  final Color shadowColor;
+
+  _NotchedCirclePainter({
+    required this.isSelected,
+    required this.hasNotch,
+    required this.scale,
+    this.bgColor = const Color(0xFFF1F1F1),
+    this.shadowColor = Colors.black,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double r = size.width / 2;
+    final Offset center = Offset(r, r);
+    final double badgeR = 11.0 * scale;
+    final Offset leftNotchCenter = Offset(9 * scale, 3 * scale);
+
+    canvas.drawCircle(
+      center + Offset(0, 2 * scale),
+      r,
+      Paint()
+        ..color = shadowColor.withValues(alpha: 0.08)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * scale),
+    );
+
+    Path path = Path()..addOval(Rect.fromCircle(center: center, radius: r));
+
+    if (hasNotch || isSelected) {
+      final notchPath = Path()
+        ..addOval(Rect.fromCircle(center: leftNotchCenter, radius: badgeR + 2 * scale));
+      path = Path.combine(PathOperation.difference, path, notchPath);
+    }
+
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [bgColor, bgColor.withValues(alpha: 0.8)],
+    );
+    final paint = Paint()
+      ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: r));
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_NotchedCirclePainter old) =>
+      old.isSelected != isSelected || old.hasNotch != hasNotch || old.bgColor != bgColor || old.shadowColor != shadowColor;
 }

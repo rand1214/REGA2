@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,17 +35,6 @@ class DeviceAuthService {
     } catch (e) {
       return false;
     }
-  }
-
-  /// Get current user ID from secure storage
-  Future<String?> get storedUserId async {
-    return await _secureStorage.read(key: _userTokenKey);
-  }
-
-  /// Get current user ID (from storage, not from auth)
-  String? get currentUserId {
-    // This will be replaced with async version
-    return null;
   }
 
   /// Get current user ID async
@@ -294,28 +284,6 @@ class DeviceAuthService {
     await _secureStorage.delete(key: _recoveryCodeKey);
   }
 
-  /// Update user profile
-  Future<void> updateProfile({
-    String? kurdishName,
-    String? avatarUrl,
-  }) async {
-    final userId = await getCurrentUserId();
-    if (userId == null) throw Exception('User not authenticated');
-
-    final updates = <String, dynamic>{
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-    
-    if (kurdishName != null) {
-      updates['kurdish_name'] = kurdishName;
-    }
-    if (avatarUrl != null) {
-      updates['avatar_url'] = avatarUrl;
-    }
-
-    await _supabase.from('user_profiles').update(updates).eq('id', userId);
-  }
-
   /// Submit recovery request for manual approval
   Future<Map<String, dynamic>> submitRecoveryRequest(
     String code,
@@ -336,6 +304,12 @@ class DeviceAuthService {
       // Get device fingerprint for new device
       final deviceFingerprint = await getDeviceFingerprint();
 
+      // Get FCM token for the new device
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (_) {}
+
       // Call database function to submit recovery request
       final response = await _supabase.rpc(
         'submit_recovery_request',
@@ -343,6 +317,7 @@ class DeviceAuthService {
           'p_recovery_code': cleanCode,
           'p_submitted_name': name,
           'p_new_device_id': deviceFingerprint,
+          'p_fcm_token': fcmToken,
         },
       );
 
@@ -478,5 +453,16 @@ class DeviceAuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  Future<void> scheduleRecoveryCodeNotification() async {
+    try {
+      final userId = await getCurrentUserId();
+      if (userId == null) return;
+      await _supabase.functions.invoke(
+        'send-recovery-code-notification',
+        body: {'user_id': userId},
+      );
+    } catch (_) {}
   }
 }
