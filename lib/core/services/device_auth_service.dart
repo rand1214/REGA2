@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -306,9 +306,9 @@ class DeviceAuthService {
 
       // Get FCM token for the new device
       String? fcmToken;
-      // try {
-      //   fcmToken = await FirebaseMessaging.instance.getToken();
-      // } catch (_) {}
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (_) {}
 
       // Call database function to submit recovery request
       final response = await _supabase.rpc(
