@@ -1,34 +1,35 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'device_auth_service.dart';
 
 class FcmService {
-  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  // static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final DeviceAuthService _authService = DeviceAuthService();
 
   static Future<void> initialize() async {
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // Firebase messaging disabled for testing
+    // await _messaging.requestPermission(
+    //   alert: true,
+    //   badge: true,
+    //   sound: true,
+    // );
 
-    await _messaging.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // await _messaging.setForegroundNotificationPresentationOptions(
+    //   alert: true,
+    //   badge: true,
+    //   sound: true,
+    // );
 
-    final token = await _messaging.getToken();
-    if (token != null) await _saveToken(token);
+    // final token = await _messaging.getToken();
+    // if (token != null) await _saveToken(token);
 
-    _messaging.onTokenRefresh.listen(_saveToken);
-    FirebaseMessaging.onMessage.listen((_) {});
+    // _messaging.onTokenRefresh.listen(_saveToken);
+    // FirebaseMessaging.onMessage.listen((_) {});
   }
 
   static Future<void> registerTokenForCurrentUser() async {
-    final token = await _messaging.getToken();
-    if (token != null) await _saveToken(token);
+    // final token = await _messaging.getToken();
+    // if (token != null) await _saveToken(token);
   }
 
   static Future<void> _saveToken(String token) async {
