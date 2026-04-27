@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DeviceAuthService {
-  late final SupabaseClient _supabase;
+  SupabaseClient? _supabase;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
 
@@ -16,8 +16,17 @@ class DeviceAuthService {
     try {
       _supabase = Supabase.instance.client;
     } catch (e) {
-      // Supabase not initialized yet
+      // Supabase not initialized yet - will be null
+      _supabase = null;
     }
+  }
+
+  /// Get Supabase client, throw if not initialized
+  SupabaseClient get supabase {
+    if (_supabase == null) {
+      throw Exception('Supabase not initialized');
+    }
+    return _supabase!;
   }
 
   static const String _userTokenKey = 'user_token';
@@ -34,7 +43,7 @@ class DeviceAuthService {
 
     try {
       // Check if user profile exists
-      final profile = await _supabase
+      final profile = await supabase
           .from('user_profiles')
           .select('id')
           .eq('id', token)
@@ -176,7 +185,7 @@ class DeviceAuthService {
       final deviceInfo = await getDeviceInfo();
 
       // Create anonymous user in Supabase Auth
-      final authResponse = await _supabase.auth.signInAnonymously();
+      final authResponse = await supabase.auth.signInAnonymously();
       final userId = authResponse.user?.id;
 
       if (userId == null) {
@@ -184,7 +193,7 @@ class DeviceAuthService {
       }
 
       // Create user profile with both plain and hashed recovery code
-      await _supabase.from('user_profiles').upsert({
+      await supabase.from('user_profiles').upsert({
         'id': userId,
         'kurdish_name': kurdishName,
         'avatar_url': avatarUrl,
@@ -228,7 +237,7 @@ class DeviceAuthService {
       final codeHash = hashRecoveryCode(cleanCode);
 
       // Find user by recovery code hash
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'find_user_by_recovery_code',
         params: {'p_code_hash': codeHash},
       );
@@ -244,7 +253,7 @@ class DeviceAuthService {
       final deviceInfo = await getDeviceInfo();
 
       // Update the user profile using the database function (bypasses RLS)
-      final updateResult = await _supabase.rpc(
+      final updateResult = await supabase.rpc(
         'update_user_recovery',
         params: {
           'p_user_id': userId,
@@ -278,7 +287,7 @@ class DeviceAuthService {
     if (userId == null) return;
 
     try {
-      await _supabase.from('user_profiles').update({
+      await supabase.from('user_profiles').update({
         'last_login_at': DateTime.now().toIso8601String(),
       }).eq('id', userId);
     } catch (e) {
@@ -288,7 +297,7 @@ class DeviceAuthService {
 
   /// Sign out
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    await supabase.auth.signOut();
     await _secureStorage.delete(key: _userTokenKey);
     await _secureStorage.delete(key: _recoveryCodeKey);
   }
@@ -320,7 +329,7 @@ class DeviceAuthService {
       } catch (_) {}
 
       // Call database function to submit recovery request
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'submit_recovery_request',
         params: {
           'p_recovery_code': cleanCode,
@@ -363,7 +372,7 @@ class DeviceAuthService {
       final deviceFingerprint = await getDeviceFingerprint();
 
       // Call database function to check status
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'check_recovery_request_status',
         params: {
           'p_new_device_id': deviceFingerprint,
@@ -448,7 +457,7 @@ class DeviceAuthService {
       final cleanCode = code.replaceAll('-', '');
       
       // Query user_profiles to find user by recovery code
-      final response = await _supabase
+      final response = await supabase
           .from('user_profiles')
           .select('id')
           .eq('recovery_code', cleanCode)
@@ -468,7 +477,7 @@ class DeviceAuthService {
     try {
       final userId = await getCurrentUserId();
       if (userId == null) return;
-      await _supabase.functions.invoke(
+      await supabase.functions.invoke(
         'send-recovery-code-notification',
         body: {'user_id': userId},
       );

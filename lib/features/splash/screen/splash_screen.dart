@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/device_auth_service.dart';
 import '../../../core/services/supabase_service.dart';
 
@@ -103,7 +104,8 @@ class _SplashScreenState extends State<SplashScreen>
         // Preload user data and chapters in the background for faster home screen loading
         // Only if Supabase is initialized
         try {
-          if (Supabase.instance.client != null) {
+          try {
+            final _ = Supabase.instance.client;
             final supabaseService = SupabaseService();
             // Fetch user data and chapters in parallel - this will be cached
             await Future.wait([
@@ -112,6 +114,8 @@ class _SplashScreenState extends State<SplashScreen>
               supabaseService.getUnreadNotificationCount(),
               supabaseService.getChaptersWithProgress(), // Preload chapters with thumbnails
             ]);
+          } catch (e) {
+            // Supabase not initialized - skip preloading
           }
         } catch (e) {
           // Ignore errors - data will be fetched again on home screen if needed

@@ -4,11 +4,29 @@ import '../../features/home/models/sponser_model.dart';
 import 'device_auth_service.dart';
 
 class SupabaseService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient? _supabase;
+  final DeviceAuthService _authService = DeviceAuthService();
+
+  SupabaseService() {
+    // Initialize Supabase client lazily
+    try {
+      _supabase = Supabase.instance.client;
+    } catch (e) {
+      // Supabase not initialized yet - will be null
+      _supabase = null;
+    }
+  }
+
+  /// Get Supabase client, throw if not initialized
+  SupabaseClient get supabase {
+    if (_supabase == null) {
+      throw Exception('Supabase not initialized');
+    }
+    return _supabase!;
+  }
 
   /// Expose the Supabase client for direct queries
-  SupabaseClient get supabase => _supabase;
-  final DeviceAuthService _authService = DeviceAuthService();
+  SupabaseClient? get supabaseOrNull => _supabase;
 
   // Cache for user data
   static String? _cachedUserName;
@@ -45,7 +63,7 @@ class SupabaseService {
       }
 
       // Call the database function
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'get_chapters_with_progress',
         params: {'p_user_id': userId},
       );
@@ -77,7 +95,7 @@ class SupabaseService {
 
       // Fetch chapters directly from the chapters table
       // Use "order" in quotes since it's a reserved keyword
-      final response = await _supabase
+      final response = await supabase
           .from('chapters')
           .select('*')
           .order('"order"', ascending: true);
@@ -124,7 +142,7 @@ class SupabaseService {
         return false;
       }
 
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'has_active_subscription',
         params: {'p_user_id': userId},
       );
@@ -154,7 +172,7 @@ class SupabaseService {
         return 0;
       }
 
-      final response = await _supabase.rpc(
+      final response = await supabase.rpc(
         'get_unread_notification_count',
         params: {'p_user_id': userId},
       );
@@ -175,7 +193,7 @@ class SupabaseService {
         return null;
       }
 
-      final response = await _supabase
+      final response = await supabase
           .from('user_profiles')
           .select()
           .eq('id', userId)
@@ -219,7 +237,7 @@ class SupabaseService {
       }
 
       final now = DateTime.now().toUtc().toIso8601String();
-      final response = await _supabase
+      final response = await supabase
           .from('sponsers')
           .select()
           .lte('valid_from', now)
