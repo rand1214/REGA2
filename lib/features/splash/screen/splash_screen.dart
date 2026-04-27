@@ -101,15 +101,18 @@ class _SplashScreenState extends State<SplashScreen>
         await _authService.updateLastLogin();
         
         // Preload user data and chapters in the background for faster home screen loading
-        final supabaseService = SupabaseService();
+        // Only if Supabase is initialized
         try {
-          // Fetch user data and chapters in parallel - this will be cached
-          await Future.wait([
-            supabaseService.getUserKurdishName(),
-            supabaseService.hasActiveSubscription(),
-            supabaseService.getUnreadNotificationCount(),
-            supabaseService.getChaptersWithProgress(), // Preload chapters with thumbnails
-          ]);
+          if (Supabase.instance.client != null) {
+            final supabaseService = SupabaseService();
+            // Fetch user data and chapters in parallel - this will be cached
+            await Future.wait([
+              supabaseService.getUserKurdishName(),
+              supabaseService.hasActiveSubscription(),
+              supabaseService.getUnreadNotificationCount(),
+              supabaseService.getChaptersWithProgress(), // Preload chapters with thumbnails
+            ]);
+          }
         } catch (e) {
           // Ignore errors - data will be fetched again on home screen if needed
         }

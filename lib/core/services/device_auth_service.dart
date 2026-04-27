@@ -7,9 +7,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DeviceAuthService {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  late final SupabaseClient _supabase;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
+
+  DeviceAuthService() {
+    // Initialize Supabase client lazily
+    try {
+      _supabase = Supabase.instance.client;
+    } catch (e) {
+      // Supabase not initialized yet
+    }
+  }
 
   static const String _userTokenKey = 'user_token';
   static const String _recoveryCodeKey = 'recovery_code';
